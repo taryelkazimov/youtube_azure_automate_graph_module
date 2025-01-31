@@ -1,7 +1,6 @@
 param ($Name, $Surname, $Department)
 
 #--- PASSWORD GENERATOR ------#
-# Generate password
 # Define the character sets
 $lowercase = 'abcdefghijklmnopqrstuvwxyz'
 $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -30,10 +29,9 @@ $password = ($password.ToCharArray() | Get-Random -Count $password.Length) -join
 
 # Ensure the password is exactly 10 characters long
 $password = $password.Substring(0, 10)
+#------ END OF PASSWORD GENERATOR ------#
 
-
-#----------------------------------------------------
-
+#--- CONNECT TO MICROSOFT GRAPH ------#
 # Configuration
 $ClientId     = "ClientID"
 $TenantId     = "TenantID"
