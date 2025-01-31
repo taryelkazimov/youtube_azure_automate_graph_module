@@ -1,0 +1,45 @@
+#To install the Microsoft Graph PowerShell module in Azure Automation with all dependencies, follow these steps:
+#First, ensure you have the necessary permissions and the Az PowerShell module installed. Then, use the following PowerShell script to install the Microsoft Graph module and its dependencies:
+
+################## COLLECTING PRE INSTALLTION INFORMATION #########################
+Get-AzSubscription
+$SubscriptionId = (get-AzSubscription).id
+
+
+
+# Set the context to the correct subscription
+Set-AzContext -SubscriptionId $SubscriptionId
+
+# Define the resource group and automation account
+Get-azResourceGroup | Select ResourceGroupName # Copy ResourceGroupName 
+$ResourceGroup = 'RG Name'
+get-azautomationAccount -ResourceGroupName $ResourceGroup
+get-azautomationAccount -ResourceGroupName $ResourceGroup | Select AutomationAccountName
+$AutomationAccount = 'Account Name'
+
+######################## MODULE INSTALLATION PART  ##################################
+# Get the top-level Microsoft Graph module
+$GraphModule = Find-Module Microsoft.Graph
+$DependencyList = $GraphModule | select -ExpandProperty Dependencies | ConvertTo-Json | ConvertFrom-Json
+$ModuleVersion = $GraphModule.Version
+
+# Install the Microsoft.Graph.Authentication module first
+$ModuleName = 'Microsoft.Graph.Authentication'
+$ContentLink = "https://www.powershellgallery.com/api/v2/package/$ModuleName/$ModuleVersion"
+New-AzAutomationModule -ResourceGroupName $ResourceGroup -AutomationAccountName $AutomationAccount -Name $ModuleName -ContentLinkUri $ContentLink -ErrorAction Stop | Out-Null
+
+# Wait for the module to be installed
+do {
+    Start-Sleep 20
+    $Status = Get-AzAutomationModule -ResourceGroupName $ResourceGroup -AutomationAccountName $AutomationAccount -Name $ModuleName | select -ExpandProperty ProvisioningState
+} until ($Status -in ('Failed','Succeeded'))
+
+# Install the remaining dependencies
+if ($Status -eq 'Succeeded') {
+    foreach ($Dependency in $DependencyList) {
+        $ModuleName = $Dependency.Name
+        $ContentLink = "https://www.powershellgallery.com/api/v2/package/$ModuleName/$ModuleVersion"
+        New-AzAutomationModule -ResourceGroupName $ResourceGroup -AutomationAccountName $AutomationAccount -ContentLinkUri $ContentLink -Name $ModuleName -ErrorAction Stop | Out-Null
+        Start-Sleep 3
+    }
+}
